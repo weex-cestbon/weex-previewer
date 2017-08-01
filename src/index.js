@@ -1,13 +1,13 @@
 /** weex-previewer
-* a tool help user to preview their weex files
-* version 0.9.1
-* example : preview(args);
-* args Object
-* entry: input file
-* folder: file directory
-* port: speccify the web server port (0-65336)
-* wsport: speccify the websocket server port (0-65336)
-**/
+ * a tool help user to preview their weex files
+ * version 0.9.1
+ * example : preview(args);
+ * args Object
+ * entry: input file
+ * folder: file directory
+ * port: speccify the web server port (0-65336)
+ * wsport: speccify the websocket server port (0-65336)
+ **/
 
 const fs = require('fs');
 const fse = require('fs-extra');
@@ -35,6 +35,7 @@ const defaultParams = {
 const Previewer = {
   init: function (args) {
     // old weex-previewer compatible
+    console.log('argv:' + args.entry)
     if (args['_'] && args['_'].length > 0 && !args.entry) {
       args.entry = args['_'][0];
     } else if (Array.isArray(args['_'])) {
@@ -43,7 +44,7 @@ const Previewer = {
       }
     }
     if (!helper.checkEntry(args.entry)) {
-      return npmlog.error('Not a ".vue" or ".we" file');
+      // return npmlog.error('Not a ".vue" or ".we" file');
     }
     if (args.port <= 0 || args.port >= 65336) {
       this.params.port = 8081;
@@ -57,12 +58,43 @@ const Previewer = {
     return this.fileFlow();
   },
   fileFlow() {
-    this.initTemDir();
-    this.buildJSFile(() => {
-      this.startServer();
-    });
+    this.initHtml();
+    this.startServer();
   },
   // build temporary directory for web preview
+  initHtml() {
+    this.params.temDir = this.params.source;
+    fse.copySync(`${__dirname}/../vue-template/template/`, this.params.source);
+    console.log('sourceDir:' + this.params.source)
+    const vueRegArr = [
+      {
+        rule: /{{\$script}}/,
+        scripts: `
+<script src="./assets/vue.runtime.js"></script>
+<script src="./assets/weex-vue-render/index.js"></script>
+    `
+      }
+    ];
+    const weRegArr = [
+      {
+        rule: /{{\$script}}/,
+        scripts: `
+<script src="./assets/weex-html5/weex.js"></script>
+    `
+      }
+    ];
+    let regarr = vueRegArr;
+    if (this.fileType === 'we') {
+      regarr = weRegArr;
+    } else {
+      this.params.webSource = path.join(this.params.temDir, 'temp');
+      if (fs.existsSync(this.params.webSource)) {
+        fse.removeSync(this.params.webSource);
+      }
+      helper.createVueSrc(this.params.source, this.params.webSource);
+    }
+    helper.replace(path.join(`${this.params.temDir}/`, 'weex.html'), regarr);
+  },
   initTemDir() {
     if (!fs.existsSync(this.params.temDir)) {
       this.params.temDir = WEEX_TMP_DIR;
@@ -85,7 +117,8 @@ const Previewer = {
         rule: /{{\$script}}/,
         scripts: `
 <script src="./assets/weex-html5/weex.js"></script>
-    ` }
+    `
+      }
     ];
     let regarr = vueRegArr;
     if (this.fileType === 'we') {

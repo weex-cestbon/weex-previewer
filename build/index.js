@@ -1,15 +1,15 @@
 'use strict';
 
 /** weex-previewer
-* a tool help user to preview their weex files
-* version 0.9.1
-* example : preview(args);
-* args Object
-* entry: input file
-* folder: file directory
-* port: speccify the web server port (0-65336)
-* wsport: speccify the websocket server port (0-65336)
-**/
+ * a tool help user to preview their weex files
+ * version 0.9.1
+ * example : preview(args);
+ * args Object
+ * entry: input file
+ * folder: file directory
+ * port: speccify the web server port (0-65336)
+ * wsport: speccify the websocket server port (0-65336)
+ **/
 
 var fs = require('fs');
 var fse = require('fs-extra');
@@ -37,6 +37,7 @@ var defaultParams = {
 var Previewer = {
   init: function init(args) {
     // old weex-previewer compatible
+    console.log('argv:' + args.entry);
     if (args['_'] && args['_'].length > 0 && !args.entry) {
       args.entry = args['_'][0];
     } else if (Array.isArray(args['_'])) {
@@ -45,7 +46,7 @@ var Previewer = {
       }
     }
     if (!helper.checkEntry(args.entry)) {
-      return npmlog.error('Not a ".vue" or ".we" file');
+      // return npmlog.error('Not a ".vue" or ".we" file');
     }
     if (args.port <= 0 || args.port >= 65336) {
       this.params.port = 8081;
@@ -59,15 +60,35 @@ var Previewer = {
     return this.fileFlow();
   },
   fileFlow: function fileFlow() {
-    var _this = this;
-
-    this.initTemDir();
-    this.buildJSFile(function () {
-      _this.startServer();
-    });
+    this.initHtml();
+    this.startServer();
   },
 
   // build temporary directory for web preview
+  initHtml: function initHtml() {
+    this.params.temDir = this.params.source;
+    fse.copySync(__dirname + '/../vue-template/template/', this.params.source);
+    console.log('sourceDir:' + this.params.source);
+    var vueRegArr = [{
+      rule: /{{\$script}}/,
+      scripts: '\n<script src="./assets/vue.runtime.js"></script>\n<script src="./assets/weex-vue-render/index.js"></script>\n    '
+    }];
+    var weRegArr = [{
+      rule: /{{\$script}}/,
+      scripts: '\n<script src="./assets/weex-html5/weex.js"></script>\n    '
+    }];
+    var regarr = vueRegArr;
+    if (this.fileType === 'we') {
+      regarr = weRegArr;
+    } else {
+      this.params.webSource = path.join(this.params.temDir, 'temp');
+      if (fs.existsSync(this.params.webSource)) {
+        fse.removeSync(this.params.webSource);
+      }
+      helper.createVueSrc(this.params.source, this.params.webSource);
+    }
+    helper.replace(path.join(this.params.temDir + '/', 'weex.html'), regarr);
+  },
   initTemDir: function initTemDir() {
     if (!fs.existsSync(this.params.temDir)) {
       this.params.temDir = WEEX_TMP_DIR;
@@ -82,7 +103,8 @@ var Previewer = {
     }];
     var weRegArr = [{
       rule: /{{\$script}}/,
-      scripts: '\n<script src="./assets/weex-html5/weex.js"></script>\n    ' }];
+      scripts: '\n<script src="./assets/weex-html5/weex.js"></script>\n    '
+    }];
     var regarr = vueRegArr;
     if (this.fileType === 'we') {
       regarr = weRegArr;
@@ -105,7 +127,7 @@ var Previewer = {
     this.params.entry = this.params.temDir + '/app.js';
   },
   buildJSFile: function buildJSFile(callback) {
-    var _this2 = this;
+    var _this = this;
 
     var self = this;
     var buildOpt = {
@@ -130,8 +152,8 @@ var Previewer = {
       this.build(vueSource, dest + '/[name].weex.js', buildOpt, function () {
         npmlog.info('weex JS bundle saved at ' + path.resolve(self.params.temDir));
       }, function () {
-        _this2.createVueAppEntry();
-        _this2.build(_this2.params.webSource, dest, {
+        _this.createVueAppEntry();
+        _this.build(_this.params.webSource, dest, {
           web: true,
           ext: 'js',
           entry: buildOpt.entry
@@ -148,11 +170,11 @@ var Previewer = {
     }
   },
   build: function build(src, dest, opts, buildcallback, watchCallback) {
-    var _this3 = this;
+    var _this2 = this;
 
     builder.build(src, dest, opts, function (err, fileStream) {
       if (!err) {
-        if (_this3.wsSuccess) {
+        if (_this2.wsSuccess) {
           if (typeof watchCallback !== 'undefined') {
             watchCallback();
           }

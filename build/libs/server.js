@@ -77,11 +77,6 @@ module.exports = {
           clients.splice(_this2.findClient(ws.upgradeReq.url), 1);
         }
       });
-      ws.on('close', function () {
-        ws.close();
-        ws._socket.destroy();
-        clients.splice(_this2.findClient(ws.upgradeReq.url), 1);
-      });
     });
     wsSuccessCallback();
     this.wss = wss;
