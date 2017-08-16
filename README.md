@@ -7,35 +7,15 @@ a tool help user to preview their weex files
 
 ### how to use
 
-``` bash 
-npm install weex-previewer --save
-```
-
-``` js
-var preview = require('weex-previewer');
-preview({
-  entry: 'src/index.vue',
-  port: 8081
-});
-
-```
-
-#### use command line 
-``` bash 
-npm install weex-previewer -g
-```
-
-``` bash
-weex-previewer src/index.vue
-```
-
-
-
-### Options
-
-| name        | Type         | Example  | Description  |
-| ------------- |:-------------:| -----:|----------:|
-| entry     | string | 'src/index.vue' | the efile you want to preview |
-| open | boolean     |    true | auto open browser |
-| port | string   | 8801 | specify an port for local web server |
-| wsport | string   | 8804 | specify an websocket port for hot reload |
+配置全局环境变量
+  
+  将`/bin/weex-previewer` 添加到全局环境变量
+  
+  使用:
+  ```
+  weex-previewer dist --entry dist/index.js
+  ```
+  
+  `第一个参数dist`: 编译后的文件夹
+  `--entry`: 设置入口文件
+  `第二个参数dist/index.js`: 入口文件.
